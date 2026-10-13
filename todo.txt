@@ -1,0 +1,1287 @@
+================================================================================
+  ORIGIN HUB API — BEGINNER-FRIENDLY LEARNING TODO LIST
+  From empty folder to full authentication system, one green checkpoint at a time
+================================================================================
+
+  HOW TO USE THIS LIST
+  --------------------
+  1. Read the WHOLE phase before typing any code.
+  2. Do the steps in order. Do not jump ahead even if a later step looks easy.
+  3. After each step, run the VERIFY command and compare to EXPECTED.
+  4. Do the BREAK IT exercise. Read the error. Fix it. This is where learning happens.
+  5. Before moving to the next phase, answer the EXPLAIN OUT LOUD questions
+     without looking at your code. If you can't, re-read the phase.
+
+  DIFFICULTY LEGEND
+  -----------------
+  [EASY]      Pure setup or copy-paste. No thinking required.
+  [NORMAL]    You need to understand a new concept. Read carefully.
+  [HARD]      Multiple concepts at once. Take a break before this phase.
+  [ADVANCED]  Real-world security or architecture. Slow down here.
+
+  GOLDEN RULE
+  -----------
+  If you cannot explain what a line of code does, delete it and rewrite it
+  until you can. Copy-paste is fine for the FIRST draft; it is a bug
+  factory for the SECOND.
+================================================================================
+
+
+================================================================================
+  PHASE 0: ENVIRONMENT & SETUP                                    [EASY]
+  STATUS: DONE
+================================================================================
+
+  Already complete. Nothing to redo.
+
+  BUT — before continuing, verify you understand what these files actually do.
+  A beginner who can run setup.bat but cannot explain it will be stuck the
+  first time something breaks.
+
+  [ ] 0.10  Open setup.bat in a text editor. Read it top to bottom.
+            For each line, write a one-sentence comment of what it does.
+            If you cannot write the comment, look up that command.
+
+  [ ] 0.11  Open start_up.bat. Same exercise.
+
+  [ ] 0.12  Answer out loud, without looking at the files:
+            - What is a virtual environment, and why does this project use one?
+            - What is the difference between setup.bat and start_up.bat?
+            - What does pyproject.toml do when you run `pip install -e .`?
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why does every project need its own .venv?
+    - What would happen if you installed FastAPI globally instead?
+
+
+================================================================================
+  PHASE 1: HELLO WORLD WITH FASTAPI                               [EASY]
+================================================================================
+
+  GOAL
+    Get a web server running that responds to your browser. Nothing more.
+    Resist the urge to add "just one more thing" — the point is the loop:
+    edit file -> save -> reload -> see change in browser.
+
+  WHAT YOU WILL LEARN
+    - What an HTTP request and response actually are
+    - How FastAPI turns a Python function into an HTTP endpoint
+    - What --reload does and why it is a dev-only flag
+
+  [ ] 1.1  Create a file: app/__init__.py
+           Leave it completely empty. It exists only to tell Python
+           "the app folder is a package you can import from."
+
+  [ ] 1.2  Read first (2 minutes): open https://fastapi.tiangolo.com/
+           Skim the first example on the homepage. Do not copy it yet.
+
+  [ ] 1.3  Create app/main.py with the smallest possible FastAPI app:
+             from fastapi import FastAPI
+             app = FastAPI()
+
+             @app.get("/")
+             def root():
+                 return {"message": "Hello from Origin Hub"}
+
+  [ ] 1.4  VERIFY — start the server:
+             .venv\Scripts\activate
+             uvicorn app.main:app --reload --port 8000
+
+           EXPECTED: a line like "Uvicorn running on http://127.0.0.1:8000"
+
+  [ ] 1.5  VERIFY — open http://localhost:8000 in your browser.
+           EXPECTED: {"message":"Hello from Origin Hub"}
+
+  [ ] 1.6  VERIFY — open http://localhost:8000/docs
+           EXPECTED: Swagger UI showing your GET / endpoint.
+           Click "Try it out" -> "Execute". See the response inside the docs.
+
+  [ ] 1.7  BREAK IT — with the server running, change the message to
+           "Hello v2" and save the file. Watch the terminal.
+           EXPECTED: uvicorn prints "Reloading..." and your browser refresh
+           shows the new message. THIS is the dev loop. Get used to it.
+
+  [ ] 1.8  BREAK IT AGAIN — stop the server (Ctrl+C). Restart it WITHOUT
+           --reload. Change the message. Refresh the browser.
+           EXPECTED: message does NOT change. This is why --reload exists
+           in dev and is forbidden in production.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - What does @app.get("/") actually do to the function below it?
+    - What is the URL path in @app.get("/health") if you rename root()?
+      (Trick question — the function name does NOT matter. Only the path.)
+    - Why did --reload NOT work when you removed it?
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Forgetting app/__init__.py -> "ModuleNotFoundError: No module named 'app'"
+    - Running uvicorn from the wrong folder -> same error
+    - Missing :app in "app.main:app" -> "Error loading ASGI app"
+
+
+================================================================================
+  PHASE 2: CONFIGURATION WITH ENVIRONMENT VARIABLES              [NORMAL]
+================================================================================
+
+  GOAL
+    Stop hardcoding strings like "Origin Hub" inside Python. Put them in a
+    .env file that the app reads at startup. This is how every real app is
+    configured — because the value changes between your laptop, staging,
+    and production, but the code does not.
+
+  WHAT YOU WILL LEARN
+    - What environment variables are
+    - How pydantic-settings reads .env and validates values
+    - The fail-fast principle: bad config crashes at startup, not at 3 a.m.
+
+  [ ] 2.1  Create app/core/__init__.py (empty file).
+
+  [ ] 2.2  Create app/core/config.py:
+             from pydantic_settings import BaseSettings
+
+             class Settings(BaseSettings):
+                 PROJECT_NAME: str = "Origin Hub API"
+                 ENVIRONMENT: str = "development"
+                 API_PREFIX: str = "/api"
+
+                 class Config:
+                     env_file = ".env"
+
+             settings = Settings()
+
+  [ ] 2.3  Add to your existing .env.example (and your local .env):
+             PROJECT_NAME=Origin Hub API
+             ENVIRONMENT=development
+             API_PREFIX=/api
+
+  [ ] 2.4  Update app/main.py to use the setting:
+             from app.core.config import settings
+
+             @app.get("/")
+             def root():
+                 return {"message": f"Hello from {settings.PROJECT_NAME}"}
+
+  [ ] 2.5  VERIFY — restart the server (needed because env is read at startup).
+           EXPECTED: message now reads "Hello from Origin Hub API".
+
+  [ ] 2.6  BREAK IT — change PROJECT_NAME in .env to "Broken Name".
+           Restart the server. Refresh browser.
+           EXPECTED: message updates to "Hello from Broken Name".
+           Then change it back.
+
+  [ ] 2.7  BREAK IT HARDER — in config.py, change:
+             ENVIRONMENT: str = "development"
+           to:
+             ENVIRONMENT: int = "development"
+           Restart the server.
+           EXPECTED: a pydantic ValidationError at startup. Read the error
+           message carefully. THIS is fail-fast. Fix it back.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why is reading PROJECT_NAME from .env better than typing it in main.py?
+    - Why does changing .env require a server restart but changing main.py
+      does not (with --reload)?
+    - Where should the real .env file go in Git? (Answer: NOWHERE. Add it to
+      .gitignore. Only .env.example is committed.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Editing .env.example instead of .env -> your app does not see the change
+    - Committing .env -> secrets leak into Git history forever
+    - Forgetting class Config: env_file = ".env" -> settings ignore .env
+
+
+================================================================================
+  PHASE 3: HEALTH CHECK & ROUTE ORGANIZATION                     [NORMAL]
+================================================================================
+
+  GOAL
+    Split your routes into files BEFORE you have many of them. Beginners
+    put everything in main.py until it becomes 2000 lines and moving it
+    becomes a nightmare. Do it now, when there are two routes.
+
+  WHAT YOU WILL LEARN
+    - APIRouter: how FastAPI lets you group routes across files
+    - URL prefixes: how /api/health is assembled from two pieces
+    - The "manifest" pattern: routes/__init__.py importing all routers
+
+  [ ] 3.1  Create app/api/__init__.py (empty).
+
+  [ ] 3.2  Create app/api/routes/__init__.py with:
+             from fastapi import APIRouter
+
+             api_router = APIRouter()
+
+  [ ] 3.3  Create app/api/routes/health.py:
+             from fastapi import APIRouter
+
+             router = APIRouter()
+
+             @router.get("/health")
+             def health_check():
+                 return {"status": "healthy", "version": "0.1.0"}
+
+  [ ] 3.4  Update app/api/routes/__init__.py to include the health router:
+             from fastapi import APIRouter
+             from app.api.routes import health
+
+             api_router = APIRouter()
+             api_router.include_router(health.router)
+
+  [ ] 3.5  Update app/main.py to mount api_router:
+             from app.api.routes import api_router
+             from app.core.config import settings
+
+             app.include_router(api_router, prefix=settings.API_PREFIX)
+
+  [ ] 3.6  VERIFY — http://localhost:8000/api/health
+           EXPECTED: {"status":"healthy","version":"0.1.0"}
+
+  [ ] 3.7  VERIFY — http://localhost:8000/health
+           EXPECTED: 404 Not Found. The /api prefix is required.
+
+  [ ] 3.8  VERIFY — http://localhost:8000/docs
+           EXPECTED: both / and /api/health appear, grouped under "default".
+
+  [ ] 3.9  BREAK IT — change API_PREFIX in .env to "/v1".
+           Restart. Try both /api/health and /v1/health.
+           EXPECTED: /v1/health works, /api/health is 404.
+           Change it back to /api.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - In the URL /api/health, which file defines "/api" and which defines "/health"?
+    - Why do we import health.py inside routes/__init__.py instead of importing
+      it in main.py?
+    - If you added a new file routes/users.py, what two lines would you add
+      to routes/__init__.py? (Answer: import users; api_router.include_router(users.router).)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Defining the router in health.py as "api_router" instead of "router"
+      -> confusing when you have many files
+    - Forgetting to include the router in routes/__init__.py -> endpoint never appears
+    - Adding the /api prefix twice -> URL becomes /api/api/health
+
+
+================================================================================
+  PHASE 4: CORS — CONNECT YOUR REACT FRONTEND                    [HARD]
+================================================================================
+
+  GOAL
+    Your React app runs on port 5173. Your API runs on port 8000. To the
+    browser, those are different websites, and the browser will block the
+    React app from calling the API unless you explicitly allow it.
+
+  WHAT YOU WILL LEARN
+    - What "origin" means (scheme + host + port)
+    - Why the browser enforces CORS even when your backend does not care
+    - The rule that will save you from a security incident later:
+      NEVER allow_origins=["*"] together with allow_credentials=True
+
+  [ ] 4.1  Add to app/core/config.py:
+             FRONTEND_URL: str = "http://localhost:5173"
+
+  [ ] 4.2  Add to .env.example (and your .env):
+             FRONTEND_URL=http://localhost:5173
+
+  [ ] 4.3  Update app/main.py to add CORSMiddleware:
+             from fastapi.middleware.cors import CORSMiddleware
+
+             app.add_middleware(
+                 CORSMiddleware,
+                 allow_origins=[settings.FRONTEND_URL],
+                 allow_credentials=True,
+                 allow_methods=["*"],
+                 allow_headers=["*"],
+             )
+
+  [ ] 4.4  VERIFY — in your React app, add a quick fetch:
+             fetch("http://localhost:8000/api/health", { credentials: "include" })
+               .then(r => r.json())
+               .then(console.log)
+
+           EXPECTED: the health JSON object in the browser console,
+           with NO red CORS error.
+
+  [ ] 4.5  BREAK IT — temporarily change allow_origins to
+           ["http://localhost:9999"] (wrong port). Reload the React page.
+           EXPECTED: browser console shows a CORS error. Read it. This is
+           the error you will see a hundred more times. Get familiar with it.
+           Then fix it back.
+
+  [ ] 4.6  BREAK IT DANGEROUSLY — change allow_origins=["*"] AND leave
+           allow_credentials=True. Reload.
+           EXPECTED: FastAPI will refuse or the browser will refuse. This
+           combination is banned for a reason. Understand why before you
+           move on: a wildcard origin means ANY website can send
+           authenticated requests as your logged-in user.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why is http://localhost:5173 a different "origin" from
+      http://localhost:8000 even though both are on your laptop?
+    - What does credentials: "include" tell the browser to do?
+    - Why must allow_origins list exact URLs when cookies are in play?
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Using "*" with credentials -> silent failure or security hole
+    - Forgetting the http:// in the origin -> never matches
+    - Adding a trailing slash to the origin -> never matches
+    - CORS errors are a browser thing, not a server thing — curl will
+      still work even when the browser blocks you. This confuses beginners
+      constantly. Do not trust curl to diagnose a CORS problem.
+
+
+================================================================================
+  PHASE 5: YOUR FIRST TEST                                       [NORMAL]
+================================================================================
+
+  GOAL
+    Stop verifying everything by clicking in the browser. Write one test
+    that checks /api/health returns 200. This is the habit that separates
+    people who ship from people who debug.
+
+  WHAT YOU WILL LEARN
+    - What a test actually is (input -> call -> assertion)
+    - How FastAPI's TestClient runs the app without a real server
+    - How pytest discovers files
+
+  [ ] 5.1  Create tests/__init__.py (empty).
+
+  [ ] 5.2  Create tests/test_health.py:
+             from fastapi.testclient import TestClient
+             from app.main import app
+
+             client = TestClient(app)
+
+             def test_health_returns_200():
+                 response = client.get("/api/health")
+                 assert response.status_code == 200
+
+             def test_health_returns_healthy_status():
+                 response = client.get("/api/health")
+                 assert response.json()["status"] == "healthy"
+
+  [ ] 5.3  Run: pytest
+           EXPECTED: "2 passed" in green.
+
+  [ ] 5.4  Run: pytest -v
+           EXPECTED: each test printed by name with PASSED. Get used to -v.
+
+  [ ] 5.5  BREAK IT — change one assertion to == 999. Run pytest.
+           EXPECTED: a red failure with the actual value shown. Read the
+           output. This is what a failing test looks like. Fix it back.
+
+  [ ] 5.6  BREAK IT HARDER — delete the /api/health route from health.py.
+           Run pytest.
+           EXPECTED: the test now fails with 404. This is exactly what tests
+           are for: they caught that you broke a route. Undo the deletion.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why is test_health.py discovered by pytest but health.py is not?
+    - What is the difference between TestClient(app) and running uvicorn?
+    - Why do we test both status_code AND json()["status"]?
+      (Answer: 200 with the wrong body is still a bug.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Naming the file test-health.py (dash) -> pytest ignores it
+    - Naming the file health_test.py -> pytest ignores it (must be test_*)
+    - Forgetting pythonpath=["."] in pyproject.toml -> "No module named 'app'"
+
+
+================================================================================
+  PHASE 6: DATABASE — POSTGRESQL + SQLALCHEMY                    [HARD]
+================================================================================
+
+  GOAL
+    Connect the app to a real PostgreSQL database. At the end of this phase
+    you will be able to run SELECT 1 through SQLAlchemy from a Python REPL.
+    No models, no tables yet — just the connection.
+
+  WHAT YOU WILL LEARN
+    - What a database engine and a session are
+    - Why sessions must be closed (get_db yields, not returns)
+    - Why config values must live in .env, not in code
+
+  [ ] 6.1  Install PostgreSQL if you haven't. On Windows, the official
+           installer from postgresql.org is fine. Remember the password
+           you set for the "postgres" user.
+
+  [ ] 6.2  Using pgAdmin or psql, create a database:
+             CREATE DATABASE origin_hub;
+
+  [ ] 6.3  Add to pyproject.toml dependencies:
+             "sqlalchemy>=2.0.0,<3.0.0",
+             "psycopg[binary]>=3.1.0,<4.0.0",
+             "alembic>=1.15.0,<2.0.0",
+
+           NOTE: use psycopg (v3), not psycopg2. The old tutorial you find
+           online probably uses psycopg2 — that is deprecated.
+
+  [ ] 6.4  Run: pip install -e ".[test]"
+
+  [ ] 6.5  Add to app/core/config.py:
+             DATABASE_URL: str
+
+           NOTE: no default. This forces the value to exist in .env, which
+           is what you want. Missing DB config should crash at startup.
+
+  [ ] 6.6  Add to .env and .env.example:
+             DATABASE_URL=postgresql+psycopg://postgres:YOUR_PASSWORD@localhost:5432/origin_hub
+
+           The "+psycopg" part tells SQLAlchemy which driver to use.
+
+  [ ] 6.7  Create app/db/__init__.py (empty).
+
+  [ ] 6.8  Create app/db/base.py:
+             from sqlalchemy.orm import DeclarativeBase
+
+             class Base(DeclarativeBase):
+                 pass
+
+  [ ] 6.9  Create app/db/session.py:
+             from sqlalchemy import create_engine
+             from sqlalchemy.orm import sessionmaker
+             from app.core.config import settings
+
+             engine = create_engine(settings.DATABASE_URL, echo=True)
+             SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+             def get_db():
+                 db = SessionLocal()
+                 try:
+                     yield db
+                 finally:
+                     db.close()
+
+  [ ] 6.10 VERIFY — from a Python REPL:
+             .venv\Scripts\activate
+             python
+             >>> from app.db.session import engine
+             >>> from sqlalchemy import text
+             >>> with engine.connect() as conn:
+             ...     print(conn.execute(text("SELECT 1")).scalar())
+             1
+
+           EXPECTED: prints 1. If it does not, your DATABASE_URL is wrong.
+           Read the error. It will tell you exactly which part is wrong.
+
+  [ ] 6.11 BREAK IT — change the password in DATABASE_URL to "wrong".
+           Run the same REPL snippet.
+           EXPECTED: an authentication error. Read it. You will see this
+           error many times when deploying. Get familiar.
+           Fix the password back.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - What is the difference between engine and SessionLocal?
+    - Why does get_db() use yield instead of return?
+    - What happens if a request raises an exception after get_db() yields
+      but before the response? (Answer: the finally block still runs and
+      closes the session. That is the point.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Forgetting +psycopg in the URL -> SQLAlchemy cannot find the driver
+    - Using "postgresql://" without a driver spec -> same error
+    - echo=True left on in production -> log spam. Fine for learning.
+    - Special characters in the DB password (like @ or :) -> URL parsing
+      breaks. URL-encode them or pick a simpler password for local dev.
+
+
+================================================================================
+  PHASE 7: USER MODEL & DATABASE MIGRATION                       [HARD]
+================================================================================
+
+  GOAL
+    Define what a "user" looks like in your database and let Alembic create
+    the table. At the end you will open pgAdmin and literally see a users
+    table with the columns you declared.
+
+  WHAT YOU WILL LEARN
+    - ORM models: Python classes that map to SQL tables
+    - Alembic: version-controlled schema changes
+    - Why you never write CREATE TABLE by hand in a real project
+
+  [ ] 7.1  Create app/models/__init__.py (empty).
+
+  [ ] 7.2  Create app/models/user.py:
+             from datetime import datetime
+             from sqlalchemy import String, Boolean, DateTime, func
+             from sqlalchemy.orm import Mapped, mapped_column
+             from app.db.base import Base
+
+             class User(Base):
+                 __tablename__ = "users"
+
+                 id: Mapped[int] = mapped_column(primary_key=True)
+                 email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+                 hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+                 is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+                 created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+  [ ] 7.3  IMPORTANT: update app/db/base.py so Alembic can see the model.
+           Alembic only detects models that have been imported.
+           Add at the bottom:
+             from app.models.user import User  # noqa: F401
+
+           Without this line, the next step generates an EMPTY migration.
+           This is the #1 beginner Alembic mistake.
+
+  [ ] 7.4  Initialize Alembic: alembic init alembic
+           This creates an alembic/ folder and alembic.ini.
+
+  [ ] 7.5  Edit alembic/env.py:
+           - Import: from app.core.config import settings
+           - Import: from app.db.base import Base
+           - Replace: target_metadata = None
+             With:    target_metadata = Base.metadata
+           - Find where it sets sqlalchemy.url and set it from settings:
+             config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+  [ ] 7.6  Generate the migration:
+             alembic revision --autogenerate -m "create users table"
+
+           EXPECTED: a new file in alembic/versions/. OPEN IT. Read it.
+           It should contain op.create_table('users', ...). If it is empty,
+           you forgot step 7.3.
+
+  [ ] 7.7  Apply the migration: alembic upgrade head
+
+  [ ] 7.8  VERIFY — in pgAdmin, refresh the origin_hub database, expand
+           Schemas -> public -> Tables. You should see: users, and
+           alembic_version.
+
+  [ ] 7.9  VERIFY — via psql or pgAdmin query tool:
+             SELECT column_name, data_type FROM information_schema.columns
+             WHERE table_name = 'users';
+           EXPECTED: rows for id, email, hashed_password, is_active, created_at.
+
+  [ ] 7.10 BREAK IT — add a new column to the User model (e.g. username).
+           Run:
+             alembic revision --autogenerate -m "add username"
+             alembic upgrade head
+           Open pgAdmin. The column exists.
+           Now DOWNGRADE: alembic downgrade -1
+           Refresh pgAdmin. The column is gone.
+           This is the point of migrations: schema changes are reversible,
+           versioned, and reproducible.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why is hashed_password nullable=True? (Hint: Google login has no password.)
+    - What is the difference between alembic revision and alembic upgrade?
+    - Why is server_default=func.now() better than default=datetime.utcnow?
+      (Answer: the database sets the time, not the app. Clock skew between
+      app servers becomes irrelevant.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Forgetting to import the model in base.py -> empty migration
+    - Editing the autogenerated migration by hand without understanding it
+    - Running alembic upgrade without running revision first -> nothing to apply
+    - Forgetting to run upgrade after generating a revision -> table missing
+
+
+================================================================================
+  PHASE 8: PASSWORD HASHING                                      [NORMAL]
+================================================================================
+
+  GOAL
+    Two functions: hash a password, verify a password against a hash.
+    You will never store or log a plain password again.
+
+  WHAT YOU WILL LEARN
+    - Why hashing is one-way and encryption is not
+    - What Argon2id is and why OWASP recommends it over bcrypt in 2024+
+    - The concept of a "salt" (handled for you by the library)
+
+  [ ] 8.1  Add to pyproject.toml: "argon2-cffi>=23.1.0,<25.0.0"
+           Run: pip install -e ".[test]"
+
+  [ ] 8.2  Create app/core/security.py:
+             from argon2 import PasswordHasher
+             from argon2.exceptions import VerifyMismatchError
+
+             _hasher = PasswordHasher()
+
+             def hash_password(plain: str) -> str:
+                 return _hasher.hash(plain)
+
+             def verify_password(plain: str, hashed: str) -> bool:
+                 try:
+                     _hasher.verify(hashed, plain)
+                     return True
+                 except VerifyMismatchError:
+                     return False
+
+  [ ] 8.3  VERIFY — in a Python REPL:
+             from app.core.security import hash_password, verify_password
+             h = hash_password("test123")
+             print(h)                       # starts with $argon2id$
+             print(verify_password("test123", h))   # True
+             print(verify_password("wrong",   h))   # False
+
+  [ ] 8.4  VERIFY — run hash_password("test123") TWICE. The two outputs
+           are DIFFERENT. This is the salt at work. Both still verify
+           correctly. This is why you cannot compare hashes with ==.
+
+  [ ] 8.5  BREAK IT — try verify_password("test123", "not-a-hash").
+           EXPECTED: the library raises InvalidHashError, NOT VerifyMismatch.
+           Your current function will crash. Read the error.
+           Fix it: catch argon2.exceptions.InvalidHashError too and return False.
+           This is why you read the docs, not just the tutorial.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why can't you "decrypt" a hash to get the password back?
+    - Why is Argon2id preferred over MD5 or SHA-256 for passwords?
+    - What is the salt and what attack does it prevent?
+      (Answer: rainbow tables. Two users with the same password get
+      different hashes.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Using hashlib.sha256 instead of argon2 -> fast hash = easy to brute-force
+    - Storing the plain password "temporarily for debugging" -> breach waiting to happen
+    - Comparing hashes with == -> always False because of the salt
+
+
+================================================================================
+  PHASE 9: PYDANTIC SCHEMAS                                      [NORMAL]
+================================================================================
+
+  GOAL
+    Define the shape of data coming INTO your API and going OUT. Pydantic
+    validates inputs automatically and rejects garbage before your code runs.
+
+  WHAT YOU WILL LEARN
+    - The difference between a "schema" (API contract) and a "model" (DB table)
+    - How FastAPI uses schemas to auto-generate the Swagger docs
+    - Why UserResponse must NEVER include hashed_password
+
+  [ ] 9.1  Add to pyproject.toml: "email-validator>=2.0.0"
+           (Required for EmailStr.) Run pip install.
+
+  [ ] 9.2  Create app/schemas/__init__.py (empty).
+
+  [ ] 9.3  Create app/schemas/auth.py:
+             from datetime import datetime
+             from pydantic import BaseModel, EmailStr, Field
+
+             class UserRegisterRequest(BaseModel):
+                 email: EmailStr
+                 password: str = Field(min_length=8, max_length=128)
+
+             class UserLoginRequest(BaseModel):
+                 email: EmailStr
+                 password: str
+
+             class UserResponse(BaseModel):
+                 id: int
+                 email: EmailStr
+                 is_active: bool
+                 created_at: datetime
+
+                 model_config = {"from_attributes": True}
+
+  [ ] 9.4  VERIFY — in a REPL:
+             from app.schemas.auth import UserRegisterRequest
+             UserRegisterRequest(email="not-an-email", password="short")
+           EXPECTED: pydantic ValidationError listing BOTH problems
+           (invalid email AND password too short) in one shot.
+
+  [ ] 9.5  BREAK IT — remove model_config from UserResponse.
+           Later, when you return a User ORM object from an endpoint, it
+           will fail. Remember this when you get there. For now, just
+           understand: from_attributes=True tells Pydantic "you can read
+           this data from an object's attributes, not just a dict".
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why do we have both a User model AND a UserResponse schema?
+      (Answer: the model has hashed_password; the response must not.)
+    - What does EmailStr do that str does not?
+    - Why is password min_length=8 here, but the DB column has no length check?
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Forgetting email-validator -> ImportError on EmailStr
+    - Adding hashed_password to UserResponse -> instant security leak
+    - Using the same schema for register and login -> you cannot tell
+      them apart in the docs, and validation requirements differ
+
+
+================================================================================
+  PHASE 10: SESSION MODEL & SESSION SERVICE                      [ADVANCED]
+================================================================================
+
+  GOAL
+    Server-side sessions: the DB stores a random token, the browser stores
+    a cookie with that token. This is the foundation of every login system
+    you will build from now on.
+
+  WHAT YOU WILL LEARN
+    - Why server-side sessions beat JWT for a browser app
+      (you can revoke a session; you cannot revoke a JWT before it expires)
+    - Why tokens must come from secrets, not random
+    - Why sessions have an expiry
+
+  [ ] 10.1 Create app/models/session.py:
+             from datetime import datetime
+             from sqlalchemy import String, DateTime, ForeignKey, func
+             from sqlalchemy.orm import Mapped, mapped_column
+             from app.db.base import Base
+
+             class Session(Base):
+                 __tablename__ = "sessions"
+
+                 id: Mapped[int] = mapped_column(primary_key=True)
+                 session_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+                 user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+                 expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+                 created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+                 user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
+                 ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+
+  [ ] 10.2 Import Session in app/db/base.py (same reason as phase 7.3):
+             from app.models.session import Session  # noqa: F401
+
+  [ ] 10.3 Generate and apply the migration:
+             alembic revision --autogenerate -m "create sessions table"
+             alembic upgrade head
+           VERIFY in pgAdmin: sessions table exists.
+
+  [ ] 10.4 Create app/services/__init__.py (empty).
+
+  [ ] 10.5 Create app/services/session_service.py:
+             import secrets
+             from datetime import datetime, timedelta, timezone
+             from sqlalchemy.orm import Session as OrmSession
+             from app.models.session import Session
+
+             SESSION_LIFETIME = timedelta(days=7)
+
+             def create_session(db: OrmSession, user_id: int,
+                                user_agent: str | None = None,
+                                ip_address: str | None = None) -> str:
+                 token = secrets.token_urlsafe(32)
+                 session = Session(
+                     session_token=token,
+                     user_id=user_id,
+                     expires_at=datetime.now(timezone.utc) + SESSION_LIFETIME,
+                     user_agent=user_agent,
+                     ip_address=ip_address,
+                 )
+                 db.add(session)
+                 db.commit()
+                 return token
+
+             def get_valid_session(db: OrmSession, token: str) -> Session | None:
+                 session = db.query(Session).filter(Session.session_token == token).first()
+                 if session is None:
+                     return None
+                 if session.expires_at < datetime.now(timezone.utc):
+                     return None
+                 return session
+
+             def delete_session(db: OrmSession, token: str) -> None:
+                 db.query(Session).filter(Session.session_token == token).delete()
+                 db.commit()
+
+  [ ] 10.6 Add cookie settings to app/core/config.py:
+             SESSION_COOKIE_NAME: str = "origin_hub_session"
+             COOKIE_SECURE: bool = False       # True in production
+             COOKIE_HTTPONLY: bool = True
+             COOKIE_SAMESITE: str = "lax"
+
+           Add matching lines to .env.example with comments explaining
+           that COOKIE_SECURE must be True in production.
+
+  [ ] 10.7 VERIFY — in a REPL, with a real user id in the DB:
+             from app.db.session import SessionLocal
+             from app.services.session_service import create_session, get_valid_session
+
+             db = SessionLocal()
+             token = create_session(db, user_id=1)
+             print(token)                       # long random string
+             print(get_valid_session(db, token)) # <Session object>
+             print(get_valid_session(db, "garbage")) # None
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why is secrets.token_urlsafe better than random.randint for a token?
+    - Why does the session have an expires_at instead of living forever?
+    - If someone steals the session cookie, what can they do?
+      (Answer: everything the user can, until the session expires or the
+      user logs out. This is why logout must DELETE the session server-side.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Using uuid4 as a token -> not cryptographically random, can be
+      predicted in theory
+    - Forgetting to commit after db.add -> session never persists
+    - Comparing expires_at with datetime.now() (naive) -> timezone bug
+
+
+================================================================================
+  PHASE 11: REGISTER ENDPOINT                                    [NORMAL]
+================================================================================
+
+  GOAL
+    POST /api/auth/register creates a user. This is the first endpoint that
+    writes to the database. Every line here matters.
+
+  WHAT YOU WILL LEARN
+    - Dependency injection with Depends(get_db)
+    - Proper HTTP status codes (201, 409)
+    - The full flow: request -> validation -> DB check -> insert -> response
+
+  [ ] 11.1 Create app/api/routes/auth.py:
+             from fastapi import APIRouter, Depends, HTTPException, status
+             from sqlalchemy.orm import Session as OrmSession
+             from app.db.session import get_db
+             from app.models.user import User
+             from app.schemas.auth import UserRegisterRequest, UserResponse
+             from app.core.security import hash_password
+
+             router = APIRouter()
+
+             @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+             def register(payload: UserRegisterRequest, db: OrmSession = Depends(get_db)):
+                 existing = db.query(User).filter(User.email == payload.email).first()
+                 if existing:
+                     raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                         detail="Email already registered")
+                 user = User(
+                     email=payload.email,
+                     hashed_password=hash_password(payload.password),
+                 )
+                 db.add(user)
+                 db.commit()
+                 db.refresh(user)
+                 return user
+
+  [ ] 11.2 Update app/api/routes/__init__.py to include auth:
+             from app.api.routes import health, auth
+             api_router.include_router(health.router)
+             api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+
+  [ ] 11.3 VERIFY — open http://localhost:8000/docs, find POST /api/auth/register,
+           click "Try it out". Send:
+             {"email": "you@example.com", "password": "password123"}
+           EXPECTED: 201 with a JSON body containing id, email, is_active,
+           created_at. NO hashed_password.
+
+  [ ] 11.4 VERIFY — in pgAdmin:
+             SELECT id, email, hashed_password FROM users;
+           EXPECTED: one row. hashed_password starts with "$argon2id$".
+
+  [ ] 11.5 VERIFY — send the SAME request again.
+           EXPECTED: 409 Conflict, detail "Email already registered".
+
+  [ ] 11.6 BREAK IT — send an invalid email:
+             {"email": "not-an-email", "password": "password123"}
+           EXPECTED: 422 Unprocessable Entity with a detailed validation error.
+           FastAPI did this for you. No code written.
+
+  [ ] 11.7 BREAK IT — send a short password:
+             {"email": "you2@example.com", "password": "short"}
+           EXPECTED: 422 with "String should have at least 8 characters".
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why check for existing email BEFORE inserting instead of catching
+      the database's unique constraint error? (Answer: you could do either,
+      but the explicit check produces a clean 409 instead of a 500.)
+    - What does response_model=UserResponse do to the response?
+      (Answer: it strips any field not declared on UserResponse, including
+      hashed_password. This is a safety net.)
+    - What does db.refresh(user) do and why is it needed?
+      (Answer: it reloads the row so DB-generated fields like id and
+      created_at are populated on the returned object.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Forgetting db.commit() -> user is not saved
+    - Forgetting db.refresh(user) -> response is missing id
+    - Returning the ORM object without response_model -> hashed_password leaks
+    - Using 200 instead of 201 for a creation -> style issue, but real
+
+
+================================================================================
+  PHASE 12: LOGIN ENDPOINT                                       [NORMAL]
+================================================================================
+
+  GOAL
+    POST /api/auth/login verifies credentials and sets a session cookie.
+    After this phase you can log in with a real account and see the cookie
+    in your browser's dev tools.
+
+  WHAT YOU WILL LEARN
+    - How response.set_cookie works
+    - Why error messages must not reveal whether an email exists
+    - The HttpOnly flag and why it stops XSS from stealing sessions
+
+  [ ] 12.1 Add to app/api/routes/auth.py:
+             from fastapi import Response
+             from app.schemas.auth import UserLoginRequest
+             from app.core.security import verify_password
+             from app.core.config import settings
+             from app.services.session_service import create_session
+
+             @router.post("/login", response_model=UserResponse)
+             def login(payload: UserLoginRequest, response: Response,
+                       db: OrmSession = Depends(get_db)):
+                 user = db.query(User).filter(User.email == payload.email).first()
+                 if not user or not user.hashed_password:
+                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                         detail="Invalid credentials")
+                 if not verify_password(payload.password, user.hashed_password):
+                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                         detail="Invalid credentials")
+                 token = create_session(db, user.id)
+                 response.set_cookie(
+                     key=settings.SESSION_COOKIE_NAME,
+                     value=token,
+                     httponly=settings.COOKIE_HTTPONLY,
+                     secure=settings.COOKIE_SECURE,
+                     samesite=settings.COOKIE_SAMESITE,
+                     max_age=7 * 24 * 3600,
+                 )
+                 return user
+
+  [ ] 12.2 VERIFY — via Swagger, POST /api/auth/login with the credentials
+           from phase 11.
+           EXPECTED: 200 with user JSON, AND a Set-Cookie header in the
+           response (Swagger shows headers under the response body).
+
+  [ ] 12.3 VERIFY — via browser dev tools (Application -> Cookies), after
+           logging in from your React frontend, the cookie exists and is
+           flagged HttpOnly.
+
+  [ ] 12.4 BREAK IT — send the wrong password.
+           EXPECTED: 401, detail "Invalid credentials".
+           Note: NO hint that the email exists.
+
+  [ ] 12.5 BREAK IT — send a non-existent email.
+           EXPECTED: 401, SAME detail "Invalid credentials".
+           This is deliberate. Different messages would let an attacker
+           enumerate valid emails.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why is "Invalid credentials" better than "User not found" or
+      "Wrong password"?
+    - What is the HttpOnly flag, and what attack does it prevent?
+      (Answer: JavaScript cannot read the cookie. Prevents XSS from
+      exfiltrating the session token.)
+    - Why is COOKIE_SECURE=False in development but must be True in production?
+      (Answer: Secure cookies are only sent over HTTPS. Local dev has no HTTPS.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Different error messages for "user not found" vs "wrong password"
+      -> email enumeration vulnerability
+    - Forgetting response: Response in the function signature -> set_cookie
+      has nowhere to write
+    - max_age missing -> cookie is a session cookie, dies when browser closes
+
+
+================================================================================
+  PHASE 13: CURRENT USER — PROTECTED ROUTE                       [HARD]
+================================================================================
+
+  GOAL
+    GET /api/auth/me returns the logged-in user. This is the pattern every
+    future protected endpoint will use. Understand it deeply.
+
+  WHAT YOU WILL LEARN
+    - FastAPI's dependency injection in depth
+    - How the browser sends cookies automatically
+    - The single dependency that will guard every future route
+
+  [ ] 13.1 Create app/api/deps.py:
+             from fastapi import Depends, HTTPException, Request, status
+             from sqlalchemy.orm import Session as OrmSession
+             from app.db.session import get_db
+             from app.core.config import settings
+             from app.models.user import User
+             from app.services.session_service import get_valid_session
+
+             def get_current_user(request: Request,
+                                  db: OrmSession = Depends(get_db)) -> User:
+                 token = request.cookies.get(settings.SESSION_COOKIE_NAME)
+                 if not token:
+                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                         detail="Not authenticated")
+                 session = get_valid_session(db, token)
+                 if session is None:
+                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                         detail="Session expired or invalid")
+                 user = db.query(User).filter(User.id == session.user_id).first()
+                 if user is None or not user.is_active:
+                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                         detail="Not authenticated")
+                 return user
+
+  [ ] 13.2 Add to app/api/routes/auth.py:
+             from app.api.deps import get_current_user
+
+             @router.get("/me", response_model=UserResponse)
+             def me(current_user: User = Depends(get_current_user)):
+                 return current_user
+
+  [ ] 13.3 VERIFY — via Swagger, GET /api/auth/me WITHOUT logging in.
+           EXPECTED: 401 "Not authenticated".
+
+  [ ] 13.4 VERIFY — via Swagger, login first, THEN call /me in the same
+           Swagger session. Swagger sends cookies automatically.
+           EXPECTED: 200 with the user's data.
+
+  [ ] 13.5 VERIFY — from your React frontend:
+             fetch("http://localhost:8000/api/auth/me", { credentials: "include" })
+               .then(r => r.json()).then(console.log)
+           EXPECTED: the user object.
+
+  [ ] 13.6 BREAK IT — manually edit the session_token in the DB to a garbage
+           value, then call /me.
+           EXPECTED: 401 "Session expired or invalid". Proves the server
+           actually checks the DB, not just the cookie's existence.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - What does Depends(get_current_user) actually do at request time?
+    - Why does every future protected endpoint just add
+      "current_user: User = Depends(get_current_user)" and get auth for free?
+    - What is the difference between "not authenticated" (401) and
+      "not authorized" (403)?
+      (Answer: 401 = we don't know who you are. 403 = we know who you are
+      but you don't have permission.)
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Forgetting credentials: "include" in React fetch -> cookie not sent
+    - Reading request.cookies.get(...) with the wrong key -> always 401
+    - Returning the ORM User without response_model -> hashed_password leaks
+      (yes, this pattern keeps coming back — check every endpoint)
+
+
+================================================================================
+  PHASE 14: LOGOUT                                               [NORMAL]
+================================================================================
+
+  GOAL
+    POST /api/auth/logout destroys the session server-side. After this,
+    even if someone copied the cookie, it is worthless.
+
+  WHAT YOU WILL LEARN
+    - Why deleting the cookie alone is NOT enough
+    - Graceful handling of already-invalid sessions
+
+  [ ] 14.1 Add to app/api/routes/auth.py:
+             from app.services.session_service import delete_session
+
+             @router.post("/logout")
+             def logout(request: Request, response: Response,
+                        db: OrmSession = Depends(get_db)):
+                 token = request.cookies.get(settings.SESSION_COOKIE_NAME)
+                 if token:
+                     delete_session(db, token)
+                 response.delete_cookie(settings.SESSION_COOKIE_NAME)
+                 return {"message": "Logged out"}
+
+  [ ] 14.2 VERIFY — login, then logout, then call /me.
+           EXPECTED: /me returns 401. Session was destroyed server-side.
+
+  [ ] 14.3 VERIFY — in pgAdmin, check the sessions table BEFORE and AFTER
+           logout. The row is gone.
+
+  [ ] 14.4 VERIFY — logout WITHOUT being logged in (no cookie).
+           EXPECTED: 200 "Logged out" — no crash. Graceful.
+
+  [ ] 14.5 BREAK IT THOUGHT EXPERIMENT — copy the session cookie value
+           BEFORE logout. Logout. Manually set the cookie in the browser
+           dev tools. Call /me.
+           EXPECTED: 401. Because the token is gone from the DB, the cookie
+           is now useless. THIS is why logout must be server-side.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - If logout only deleted the cookie, what could an attacker who stole
+      the cookie earlier still do?
+    - Why does delete_cookie need the same key as set_cookie?
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Only deleting the cookie, not the DB row -> session stays valid forever
+    - Crashing on logout when no cookie is present -> 500 errors in prod
+
+
+================================================================================
+  PHASE 15: AUTOMATED TESTS FOR AUTH                             [HARD]
+================================================================================
+
+  GOAL
+    Cover every auth flow with tests. After this phase you can refactor
+    with confidence.
+
+  WHAT YOU WILL LEARN
+    - How to test cookie-based auth with TestClient
+    - Why tests must clean up after themselves (test database)
+
+  [ ] 15.1 Create tests/conftest.py with a fixture that gives you a fresh
+           test database per test session. If you are not ready for a
+           separate test DB, use SQLite in-memory for now:
+             import pytest
+             from sqlalchemy import create_engine
+             from sqlalchemy.orm import sessionmaker
+             from app.db.base import Base
+             from app.db.session import get_db
+             from app.main import app
+
+             @pytest.fixture
+             def client():
+                 engine = create_engine("sqlite:///:memory:")
+                 Base.metadata.create_all(engine)
+                 TestingSession = sessionmaker(bind=engine)
+
+                 def override_get_db():
+                     db = TestingSession()
+                     try:
+                         yield db
+                     finally:
+                         db.close()
+
+                 app.dependency_overrides[get_db] = override_get_db
+                 from fastapi.testclient import TestClient
+                 yield TestClient(app)
+                 app.dependency_overrides.clear()
+
+  [ ] 15.2 Create tests/test_auth.py covering:
+           - register returns 201 with the new user (no hashed_password)
+           - register with duplicate email returns 409
+           - register with short password returns 422
+           - login with correct credentials returns 200 and sets cookie
+           - login with wrong password returns 401
+           - login with unknown email returns 401
+           - /me without cookie returns 401
+           - /me with valid cookie returns 200
+           - logout clears session; /me afterwards returns 401
+
+  [ ] 15.3 Run: pytest -v
+           EXPECTED: all green.
+
+  [ ] 15.4 BREAK IT — change register's status_code=201 to 200. Run pytest.
+           EXPECTED: one test fails. Revert. This proves the tests are real.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why do we override get_db instead of using the real database?
+    - What does app.dependency_overrides.clear() do and why is it necessary?
+
+  COMMON MISTAKES AT THIS PHASE:
+    - Tests sharing state -> flaky tests
+    - Not cleaning up dependency_overrides -> later tests use the test DB
+    - Using the production DATABASE_URL in tests -> you just wiped prod
+
+
+================================================================================
+  PHASE 16: GOOGLE SIGN-IN                                       [ADVANCED]
+================================================================================
+
+  GOAL
+    Users can sign in with Google. The resulting session cookie is IDENTICAL
+    to password login. Every auth method converges on one session system.
+
+  WHAT YOU WILL LEARN
+    - How to verify a Google ID token server-side
+    - Why the resulting session must be indistinguishable from password login
+
+  [ ] 16.1 Add to pyproject.toml: "google-auth>=2.0.0,<3.0.0". Install.
+
+  [ ] 16.2 Add to config.py and .env.example:
+             GOOGLE_CLIENT_ID: str
+
+  [ ] 16.3 Create app/services/google_auth_service.py:
+             from google.oauth2 import id_token
+             from google.auth.transport import requests as google_requests
+             from app.core.config import settings
+             from fastapi import HTTPException, status
+
+             def verify_google_token(token: str) -> dict:
+                 try:
+                     info = id_token.verify_oauth2_token(
+                         token, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+                     )
+                     return info
+                 except ValueError:
+                     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                         detail="Invalid Google token")
+
+  [ ] 16.4 Add to app/api/routes/auth.py:
+             from pydantic import BaseModel
+             from app.services.google_auth_service import verify_google_token
+
+             class GoogleLoginRequest(BaseModel):
+                 id_token: str
+
+             @router.post("/google", response_model=UserResponse)
+             def google_login(payload: GoogleLoginRequest, response: Response,
+                              db: OrmSession = Depends(get_db)):
+                 info = verify_google_token(payload.id_token)
+                 email = info["email"]
+                 user = db.query(User).filter(User.email == email).first()
+                 if user is None:
+                     user = User(email=email, hashed_password=None)
+                     db.add(user)
+                     db.commit()
+                     db.refresh(user)
+                 token = create_session(db, user.id)
+                 response.set_cookie(
+                     key=settings.SESSION_COOKIE_NAME, value=token,
+                     httponly=True, secure=settings.COOKIE_SECURE,
+                     samesite=settings.COOKIE_SAMESITE, max_age=7 * 24 * 3600,
+                 )
+                 return user
+
+  [ ] 16.5 VERIFY — from your React frontend (using Google Sign-In JS library),
+           send a real ID token to /api/auth/google.
+           EXPECTED: 200 with user JSON, cookie set.
+           Then GET /api/auth/me with the same cookie: 200.
+           Then logout. Then /me: 401.
+           Everything works IDENTICALLY to password login.
+
+  EXPLAIN OUT LOUD BEFORE MOVING ON:
+    - Why does Google login create a user with hashed_password=None?
+    - Why does verify_oauth2_token need the CLIENT_ID? What attack does that
+      prevent? (Answer: token audience verification. Prevents a token issued
+      for a different app from being replayed against yours.)
+
+
+================================================================================
+  PHASE 17: PASSKEYS (WEBAUTHN) — FUTURE MILESTONE               [ADVANCED]
+================================================================================
+
+  [ ] 17.1 Add py_webauthn.
+  [ ] 17.2 Model: passkey_credentials (user_id, credential_id, public_key).
+  [ ] 17.3 Registration ceremony: /options -> challenge, /verify -> store.
+  [ ] 17.4 Login ceremony: /options -> challenge, /verify -> create SAME cookie.
+  [ ] 17.5 Test end-to-end with a real device.
+
+  KEY PRINCIPLE: same session cookie as every other method.
+
+
+================================================================================
+  PHASE 18: TWO-FACTOR AUTHENTICATION (TOTP) — FUTURE MILESTONE  [ADVANCED]
+================================================================================
+
+  [ ] 18.1 Add pyotp.
+  [ ] 18.2 Model: totp_secrets (user_id, secret, confirmed_at).
+  [ ] 18.3 /2fa/setup returns QR code URI; /2fa/verify confirms and stores.
+  [ ] 18.4 Login flow: after password check, if 2FA enabled, return
+           "2fa_required" WITHOUT a session cookie. Only after /2fa/validate
+           succeeds, create the SAME session cookie.
+  [ ] 18.5 Recovery codes: generate 10 single-use codes, hash and store.
+
+
+================================================================================
+  DONE — FULL AUTHENTICATION SYSTEM COMPLETE
+================================================================================
+
+  YOUR FINAL ARCHITECTURE
+  -----------------------
+    - Email/password registration and login
+    - Google Sign-In
+    - Passkeys (WebAuthn)
+    - Optional 2FA (TOTP)
+    - ONE session system (server-side, DB-backed, HttpOnly cookies)
+    - ONE get_current_user dependency guarding every protected route
+    - Automated tests for every auth flow
+
+  THREE RULES TO REMEMBER FOREVER
+  -------------------------------
+    1. Never store or log a plain password.
+    2. Every auth method ends in the SAME session cookie.
+    3. Every protected route uses the SAME get_current_user dependency.
+
+  If you break any of these three rules, you have built something
+  harder to secure than the thing you replaced.
+================================================================================
